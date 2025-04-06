@@ -143,13 +143,29 @@ if ticker_input:
                             height=800,
                             title=f"{ticker_input} Technical Chart and Volume",
                             margin=dict(l=40, r=40, t=60, b=40),
-                            xaxis2=dict(title="Date", tickformat=tick_format),
+                            xaxis=dict(
+                                title="Date",
+                                tickformat=tick_format,
+                                type='date',
+                                showline=True,
+                                linecolor='black',
+                                linewidth=2,
+                                rangeslider=dict(
+                                    visible=True,
+                                    thickness=0.08,         # make it more prominent
+                                    bgcolor="#e0e0e0",      # light background for track
+                                    bordercolor="gray",
+                                    borderwidth=1
+                                )
+                            ),
                             yaxis=dict(title="Price"),
                             yaxis2=dict(title="Volume"),
                             hovermode='x unified'
                         )
 
-                        st.plotly_chart(fig_combined, use_container_width=True)
+
+                        st.plotly_chart(fig_combined, use_container_width=True, config={"scrollZoom": True})
+
 
                        
 
