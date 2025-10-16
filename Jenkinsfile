@@ -155,75 +155,87 @@ pipeline {
         }
         
         stage('Deploy to Production') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
-                    input message: 'Deploy to production?', ok: 'Deploy'
-                    sh """
-                        curl -X POST "${RENDER_DEPLOY_HOOK_PRODUCTION}"
-                        echo "Production deployment triggered successfully!"
-                    """
+                    // Check if we're on main branch
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'unknown'
+                    echo "Current branch: ${currentBranch}"
+                    
+                    if (currentBranch == 'main' || currentBranch == 'origin/main') {
+                        echo "Deploying to production from main branch..."
+                        input message: 'Deploy to production?', ok: 'Deploy'
+                        sh """
+                            curl -X POST "${RENDER_DEPLOY_HOOK_PRODUCTION}"
+                            echo "Production deployment triggered successfully!"
+                        """
+                    } else {
+                        echo "Skipping production deployment - not on main branch (current: ${currentBranch})"
+                    }
                 }
             }
         }
         
         stage('Health Check & Auto Rollback') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
-                    sh """
-                        echo "Waiting for deployment to be ready..."
-                        sleep(30)
-                        
-                        # Get service URL
-                        SERVICE_URL=\$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \\
-                            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}" | \\
-                            jq -r '.service.serviceDetails.url')
-                        
-                        echo "Service URL: \$SERVICE_URL"
-                        
-                        # Health check
-                        HEALTH_CHECK_PASSED=false
-                        for i in {1..10}; do
-                            echo "Health check attempt \$i/10..."
-                            if curl -f -s --max-time 10 "\$SERVICE_URL/_stcore/health" > /dev/null 2>&1; then
-                                echo "Health check passed!"
-                                HEALTH_CHECK_PASSED=true
-                                break
-                            fi
-                            echo "Health check failed, retrying in 10 seconds..."
-                            sleep 10
-                        done
-                        
-                        if [ "\$HEALTH_CHECK_PASSED" = "false" ]; then
-                            echo "Health check failed - initiating rollback..."
+                    // Check if we're on main branch
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'unknown'
+                    echo "Current branch: ${currentBranch}"
+                    
+                    if (currentBranch == 'main' || currentBranch == 'origin/main') {
+                        echo "Running health check and auto rollback for main branch..."
+                        sh """
+                            echo "Waiting for deployment to be ready..."
+                            sleep(30)
                             
-                            # Get previous deployment
-                            PREVIOUS_DEPLOY_ID=\$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \\
-                                "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" | \\
-                                jq -r '.deploys[] | select(.status == "live") | .id' | head -2 | tail -1)
+                            # Get service URL
+                            SERVICE_URL=\$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \\
+                                "https://api.render.com/v1/services/${RENDER_SERVICE_ID}" | \\
+                                jq -r '.service.serviceDetails.url')
                             
-                            if [ "\$PREVIOUS_DEPLOY_ID" != "null" ] && [ "\$PREVIOUS_DEPLOY_ID" != "" ]; then
-                                echo "Rolling back to deployment: \$PREVIOUS_DEPLOY_ID"
+                            echo "Service URL: \$SERVICE_URL"
+                            
+                            # Health check
+                            HEALTH_CHECK_PASSED=false
+                            for i in {1..10}; do
+                                echo "Health check attempt \$i/10..."
+                                if curl -f -s --max-time 10 "\$SERVICE_URL/_stcore/health" > /dev/null 2>&1; then
+                                    echo "Health check passed!"
+                                    HEALTH_CHECK_PASSED=true
+                                    break
+                                fi
+                                echo "Health check failed, retrying in 10 seconds..."
+                                sleep 10
+                            done
+                            
+                            if [ "\$HEALTH_CHECK_PASSED" = "false" ]; then
+                                echo "Health check failed - initiating rollback..."
                                 
-                                # Trigger rollback
-                                curl -s -X POST \\
-                                    -H "Authorization: Bearer ${RENDER_API_KEY}" \\
-                                    -H "Content-Type: application/json" \\
-                                    "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/\$PREVIOUS_DEPLOY_ID/restore"
+                                # Get previous deployment
+                                PREVIOUS_DEPLOY_ID=\$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \\
+                                    "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" | \\
+                                    jq -r '.deploys[] | select(.status == "live") | .id' | head -2 | tail -1)
                                 
-                                echo "Rollback triggered successfully"
+                                if [ "\$PREVIOUS_DEPLOY_ID" != "null" ] && [ "\$PREVIOUS_DEPLOY_ID" != "" ]; then
+                                    echo "Rolling back to deployment: \$PREVIOUS_DEPLOY_ID"
+                                    
+                                    # Trigger rollback
+                                    curl -s -X POST \\
+                                        -H "Authorization: Bearer ${RENDER_API_KEY}" \\
+                                        -H "Content-Type: application/json" \\
+                                        "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/\$PREVIOUS_DEPLOY_ID/restore"
+                                    
+                                    echo "Rollback triggered successfully"
+                                else
+                                    echo "No previous deployment found for rollback"
+                                fi
                             else
-                                echo "No previous deployment found for rollback"
+                                echo "Service is healthy - no rollback needed"
                             fi
-                        else
-                            echo "Service is healthy - no rollback needed"
-                        fi
-                    """
+                        """
+                    } else {
+                        echo "Skipping health check and rollback - not on main branch (current: ${currentBranch})"
+                    }
                 }
             }
         }
