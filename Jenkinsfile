@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    environment {
+        RENDER_DEPLOY_HOOK_PRODUCTION = 'https://api.render.com/deploy/srv-d3o53a9r0fns73bth1e0?key=jiSRgm6pIYw'
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -100,6 +104,7 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'develop'
+                    expression { env.BRANCH_NAME == 'main' }
                 }
             }
             steps {
@@ -126,6 +131,7 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'develop'
+                    expression { env.BRANCH_NAME == 'main' }
                 }
             }
             steps {
@@ -174,7 +180,10 @@ pipeline {
         
         stage('Deploy to Production') {
             when {
-                branch 'main'
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == 'main' }
+                }
             }
             steps {
                 script {
@@ -183,10 +192,9 @@ pipeline {
                     
                     sh """
                         echo "🚀 Deploying to Render.com production environment..."
-                        echo "Note: Configure RENDER_DEPLOY_HOOK_PRODUCTION credential to enable deployment"
-                        echo "Deploy hook would be triggered here: curl -X POST \$RENDER_DEPLOY_HOOK_PRODUCTION"
-                        sleep 2
-                        echo "✅ Production deployment would be triggered here"
+                        curl -X POST "${RENDER_DEPLOY_HOOK_PRODUCTION}"
+                        echo "✅ Production deployment triggered successfully!"
+                        echo "Check Render.com dashboard for deployment status"
                     """
                 }
             }
