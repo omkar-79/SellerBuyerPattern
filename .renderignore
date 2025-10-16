@@ -1,0 +1,54 @@
+# Render.com ignore file
+# Files and directories to exclude from deployment
+
+# Development files
+.git/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing files
+tests/
+.pytest_cache/
+coverage.xml
+htmlcov/
+.coverage
+test-results.xml
+
+# CI/CD files
+Jenkinsfile
+.flake8
+pytest.ini
+docker-compose.yml
+Dockerfile
+
+# Documentation
+README-CICD.md
+*.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

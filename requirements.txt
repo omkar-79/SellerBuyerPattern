@@ -2,3 +2,9 @@ streamlit
 yfinance
 pandas
 plotly
+pytest
+pytest-cov
+flake8
+bandit
+safety
+requests
