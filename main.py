@@ -116,9 +116,9 @@ if ticker_input:
                     elif indicator == "MACD":
                         fig_combined.add_trace(go.Scatter(x=df.index, y=df['MACD'], name='MACD', line=dict(color='black')), row=1, col=1)
                         fig_combined.add_trace(go.Scatter(x=df.index, y=df['Signal'], name='Signal Line', line=dict(color='red')), row=1, col=1)
-
-
-                    
+            
+            
+            
                     # Fetch Volume Data
                     df_hist = ticker.history(period=period, interval=interval)
 

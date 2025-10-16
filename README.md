@@ -1,4 +1,4 @@
-# 🚀 Jenkins CI/CD Pipeline for Stock Market Analysis App
+# Jenkins CI/CD Pipeline for Stock Market Analysis App
 
 ## 📋 Overview
 
@@ -13,18 +13,17 @@ This project uses a production‑focused Jenkins CI/CD pipeline:
 ## 🏗️ Pipeline Architecture
 
 ```mermaid
-graph TD
-    A[Code Commit (any branch)] --> B[Checkout]
-    B --> C[Environment Setup]
-    C --> D[Code Quality (Lint + Security)]
+flowchart TD
+    A[Commit (any branch)] --> B[Checkout]
+    B --> C[Env Setup]
+    C --> D[Code Quality]
     D --> E[Unit Tests]
     E --> F[Build & Package]
     F --> G[Integration Checks]
-    G --> H{Branch == main?}
-    H -- Yes --> I[Manual Deploy Approval]
-    I --> J[Deploy to Render Production]
-    J --> K[Health Check + Auto Rollback]
-    H -- No  --> L[Stop (no deploy)]
+    G -->|main| H[Manual Deploy Approval]
+    H --> I[Deploy to Render (Production)]
+    I --> J[Health Check + Auto Rollback]
+    G -->|not main| K[Stop (no deploy)]
 ```
 
 ## 📁 Project Structure
@@ -77,7 +76,7 @@ SellerBuyerPattern/
 - Post‑deploy: health checks against Streamlit endpoint
 - Optional: automatic rollback via Render API (if credentials configured)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Jenkins prerequisites
 - Plugins: Pipeline, HTML Publisher, Coverage (or Cobertura/JUnit built‑ins)
@@ -91,7 +90,7 @@ SellerBuyerPattern/
 - Secret text (optional): `RENDER_API_KEY` → Render API key (enables auto‑rollback)
 - Secret text (optional): `RENDER_SERVICE_ID` → Render service ID (enables auto‑rollback)
 
-## 🧪 Local Development
+## Local Development
 
 ```bash
 # Run tests
@@ -104,14 +103,14 @@ flake8 .
 streamlit run main.py --server.port=8501 --server.address=0.0.0.0
 ```
 
-## 🌍 Deployment Target
+## Deployment Target
 
 ### Production
 - Trigger: push to `main` (or `origin/main`) + manual approval in Jenkins
 - Target: your Render.com production service
 - Safety nets: health checks and optional auto‑rollback when `RENDER_API_KEY` and `RENDER_SERVICE_ID` are present
 
-## 🔄 Branch Strategy
+## Branch Strategy
 
 ```
 main (production)
@@ -123,33 +122,33 @@ main (production)
 - Feature branches: full checks + manual code review prompt, no deploy
 - Main branch: automatic code review (quality gates), deploy on approval
 
-## 📊 Quality Gates
+## Quality Gates
 - Linting: no critical Flake8 errors (E9, F63, F7, F82)
 - Security: no HIGH‑severity Bandit findings
 - Tests: test suite completes; coverage reports generated
 
-## 🛟 Auto Rollback (optional)
+## Auto Rollback (optional)
 If `RENDER_API_KEY` and `RENDER_SERVICE_ID` are configured, the pipeline:
 - Waits post‑deploy
 - Calls Render API to discover the service URL
 - Probes `/_stcore/health` up to 10 attempts
 - If unhealthy, restores the previous live deploy via Render API
 
-## 🧰 Troubleshooting
+## Troubleshooting
 
 ### “Render API credentials not configured”
 - Add `RENDER_API_KEY` and `RENDER_SERVICE_ID` credentials in Jenkins (Global domain)
 - Ensure they are declared in the Jenkinsfile `environment { ... }`
 
-### “Stage skipped: Deploy to Production”
+### “Deploy to Production stage skipped” (Jenkins stage)
 - Verify the branch is `main` (pipeline logs show `Current branch: ...`)
-- Confirm manual deploy approval was clicked
+- Confirm the manual deploy approval was clicked in Jenkins
 
 ### Integration check fails
 - Validate local `streamlit run main.py`
 - Re‑install deps: `pip install -r requirements.txt`
 
-## 🤝 Contributing
+## Contributing
 1. Create a feature branch from `main`
 2. Implement changes and tests
 3. Push branch; resolve any CI issues
