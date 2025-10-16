@@ -101,11 +101,7 @@ pipeline {
         
         stage('Build and Package') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    expression { env.BRANCH_NAME == 'main' }
-                }
+                branch 'main'
             }
             steps {
                 script {
@@ -128,11 +124,7 @@ pipeline {
         
         stage('Integration Tests') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    expression { env.BRANCH_NAME == 'main' }
-                }
+                branch 'main'
             }
             steps {
                 script {
@@ -161,29 +153,9 @@ pipeline {
             }
         }
         
-        stage('Deploy to Staging') {
-            when {
-                branch 'develop'
-            }
-            steps {
-                script {
-                    sh """
-                        echo "🚀 Deploying to Render.com staging environment..."
-                        echo "Note: Configure RENDER_DEPLOY_HOOK_STAGING credential to enable deployment"
-                        echo "Deploy hook would be triggered here: curl -X POST \$RENDER_DEPLOY_HOOK_STAGING"
-                        sleep 2
-                        echo "✅ Staging deployment would be triggered here"
-                    """
-                }
-            }
-        }
-        
         stage('Deploy to Production') {
             when {
-                anyOf {
-                    branch 'main'
-                    expression { env.BRANCH_NAME == 'main' }
-                }
+                branch 'main'
             }
             steps {
                 script {
@@ -196,6 +168,54 @@ pipeline {
                         echo "✅ Production deployment triggered successfully!"
                         echo "Check Render.com dashboard for deployment status"
                     """
+                }
+            }
+            post {
+                success {
+                    echo "✅ Production deployment completed successfully!"
+                    echo "Deployment ID: ${BUILD_NUMBER}"
+                    echo "Commit: ${env.GIT_COMMIT_SHORT}"
+                }
+                failure {
+                    echo "❌ Production deployment failed!"
+                    echo "Check Render.com logs for details"
+                }
+            }
+        }
+        
+        stage('Rollback Check') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    // Ask if rollback is needed
+                    def rollbackNeeded = input(
+                        message: 'Is rollback needed?', 
+                        ok: 'Rollback',
+                        parameters: [
+                            choice(
+                                name: 'ROLLBACK_REASON',
+                                choices: ['No rollback needed', 'Deployment failed', 'Performance issues', 'User complaints', 'Other'],
+                                description: 'Select reason for rollback'
+                            )
+                        ]
+                    )
+                    
+                    if (rollbackNeeded != 'No rollback needed') {
+                        sh """
+                            echo "🔄 Initiating rollback procedure..."
+                            echo "Rollback reason: ${rollbackNeeded}"
+                            echo "Previous deployment: ${BUILD_NUMBER - 1}"
+                            echo "Note: Manual rollback required in Render.com dashboard"
+                            echo "1. Go to Render.com dashboard"
+                            echo "2. Select your service"
+                            echo "3. Go to 'Deploys' tab"
+                            echo "4. Click 'Rollback' on previous successful deployment"
+                        """
+                    } else {
+                        echo "✅ No rollback needed - deployment successful"
+                    }
                 }
             }
         }
