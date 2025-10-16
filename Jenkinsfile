@@ -215,13 +215,11 @@ pipeline {
     post {
         always {
             // Cleanup
-            node {
-                sh """
-                    rm -rf venv || true
-                    rm -rf deploy || true
-                    rm -f stock-market-app-*.tar.gz || true
-                """
-            }
+            sh """
+                rm -rf venv || true
+                rm -rf deploy || true
+                rm -f stock-market-app-*.tar.gz || true
+            """
         }
         
         success {
