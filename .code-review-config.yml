@@ -1,0 +1,125 @@
+# Code Review Configuration for Stock Market App
+# This file defines the code review standards and requirements
+
+code_review:
+  # Required reviewers
+  required_reviewers: 1
+  required_approvals: 1
+  
+  # Quality gates
+  quality_gates:
+    linting:
+      enabled: true
+      tool: flake8
+      max_complexity: 10
+      max_line_length: 127
+      fail_on_errors: true
+    
+    security:
+      enabled: true
+      tools: [bandit, safety]
+      fail_on_high_severity: true
+      fail_on_medium_severity: false
+    
+    testing:
+      enabled: true
+      tool: pytest
+      min_coverage: 80
+      fail_on_low_coverage: true
+    
+    dependencies:
+      enabled: true
+      tool: safety
+      fail_on_vulnerabilities: true
+  
+  # Code review checklist
+  checklist:
+    - "Code follows Python PEP 8 style guidelines"
+    - "Functions and classes have proper docstrings"
+    - "No hardcoded secrets or credentials"
+    - "Error handling is implemented properly"
+    - "Unit tests cover new functionality"
+    - "Security vulnerabilities are addressed"
+    - "Performance implications are considered"
+    - "Code is readable and maintainable"
+  
+  # File patterns to review
+  review_patterns:
+    include:
+      - "*.py"
+      - "requirements.txt"
+      - "Jenkinsfile*"
+      - "*.yml"
+      - "*.yaml"
+    exclude:
+      - "*.pyc"
+      - "__pycache__/*"
+      - "venv/*"
+      - ".venv/*"
+      - "deploy/*"
+      - "htmlcov/*"
+  
+  # Automated checks
+  automated_checks:
+    - name: "Linting"
+      command: "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics"
+      required: true
+    
+    - name: "Security Scan"
+      command: "bandit -r . -f json -o bandit-report.json"
+      required: true
+    
+    - name: "Dependency Check"
+      command: "safety check --json"
+      required: true
+    
+    - name: "Unit Tests"
+      command: "pytest tests/ -v --cov=. --cov-report=xml --cov-report=html"
+      required: true
+  
+  # Review templates
+  templates:
+    approval:
+      title: "✅ Code Review Approved"
+      message: |
+        This PR has been approved for merge.
+        
+        **Review Summary:**
+        - ✅ Linting checks passed
+        - ✅ Security scans passed
+        - ✅ Unit tests passed
+        - ✅ Code quality standards met
+        
+        **Next Steps:**
+        - Merge to main branch
+        - Deploy to production
+    
+    rejection:
+      title: "❌ Code Review Rejected"
+      message: |
+        This PR requires changes before it can be approved.
+        
+        **Issues Found:**
+        - Please address the feedback below
+        - Fix any failing checks
+        - Update tests if needed
+        
+        **Next Steps:**
+        - Make requested changes
+        - Re-run the pipeline
+        - Request re-review
+    
+    request_info:
+      title: "❓ More Information Needed"
+      message: |
+        Additional information is required to complete this review.
+        
+        **Questions:**
+        - Please provide more context
+        - Explain the implementation approach
+        - Address any concerns raised
+        
+        **Next Steps:**
+        - Provide requested information
+        - Update documentation if needed
+        - Request re-review

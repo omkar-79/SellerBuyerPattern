@@ -1,0 +1,102 @@
+# Automatic Rollback Configuration for Stock Market App
+# This file defines the rollback settings and health check parameters
+
+rollback:
+  # Health check settings
+  health_check:
+    enabled: true
+    endpoint: "/_stcore/health"  # Streamlit health endpoint
+    max_attempts: 10
+    retry_interval: 10  # seconds
+    timeout: 10  # seconds per request
+    wait_after_deploy: 30  # seconds to wait after deployment
+  
+  # Rollback triggers
+  triggers:
+    - name: "Health Check Failure"
+      condition: "health_check_fails"
+      action: "automatic_rollback"
+      enabled: true
+    
+    - name: "Response Time Too High"
+      condition: "response_time > 5000ms"
+      action: "automatic_rollback"
+      enabled: false  # Disabled by default
+    
+    - name: "Error Rate Too High"
+      condition: "error_rate > 5%"
+      action: "automatic_rollback"
+      enabled: false  # Disabled by default
+  
+  # Rollback behavior
+  behavior:
+    rollback_to_previous: true
+    max_rollback_attempts: 1
+    rollback_timeout: 60  # seconds
+    verify_rollback_health: true
+    
+  # Notifications
+  notifications:
+    enabled: true
+    channels:
+      - "jenkins_console"
+      - "slack"  # Optional: requires Slack webhook
+      - "email"  # Optional: requires email configuration
+    
+  # Monitoring
+  monitoring:
+    log_health_checks: true
+    log_rollback_events: true
+    archive_rollback_logs: true
+
+# Render API configuration
+render_api:
+  base_url: "https://api.render.com/v1"
+  endpoints:
+    service_info: "/services/{service_id}"
+    deployments: "/services/{service_id}/deploys"
+    rollback: "/services/{service_id}/deploys/{deploy_id}/restore"
+  
+  # Required credentials (set in Jenkins)
+  credentials:
+    api_key: "RENDER_API_KEY"
+    service_id: "RENDER_SERVICE_ID"
+    deploy_hook: "RENDER_DEPLOY_HOOK_PRODUCTION"
+
+# Health check endpoints to monitor
+health_endpoints:
+  primary: "/_stcore/health"  # Streamlit health check
+  secondary: "/"  # Main page availability
+  custom: []  # Add custom endpoints if needed
+
+# Rollback scenarios
+scenarios:
+  deployment_failure:
+    description: "New deployment fails health checks"
+    action: "rollback_to_previous"
+    timeout: 300  # 5 minutes
+    
+  service_unavailable:
+    description: "Service becomes completely unavailable"
+    action: "rollback_to_previous"
+    timeout: 180  # 3 minutes
+    
+  performance_degradation:
+    description: "Service performance drops significantly"
+    action: "rollback_to_previous"
+    timeout: 600  # 10 minutes
+    enabled: false  # Disabled by default
+
+# Alert thresholds
+thresholds:
+  health_check_failure_rate: 100  # % - 100% means all checks must fail
+  response_time_warning: 3000  # ms
+  response_time_critical: 5000  # ms
+  error_rate_warning: 2  # %
+  error_rate_critical: 5  # %
+
+# Recovery actions
+recovery:
+  automatic_retry: false  # Don't retry failed deployments
+  manual_intervention_required: true  # Alert if rollback fails
+  escalation_timeout: 300  # seconds before escalating
