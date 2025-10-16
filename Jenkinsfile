@@ -61,74 +61,75 @@ pipeline {
             }
         }
         
-        stage('Code Review') {
+       stage('Code Review') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'origin/main') {
-                        // Automatic code review for main branch
-                        echo "Running automatic code review for main branch..."
-                        
-                        // Check if quality gates passed
-                        sh """
-                            source venv/bin/activate
-                            
-                            # Check linting results
-                            echo "Checking linting results..."
-                            if flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>/dev/null; then
-                                echo "✅ Linting passed - no critical errors"
-                            else
-                                echo "❌ Linting failed - critical errors found"
-                                exit 1
-                            fi
-                            
-                            # Check security scan results
-                            echo "Checking security scan results..."
-                            if [ -f bandit-report.json ]; then
-                                HIGH_SEVERITY=\$(jq -r '.results[] | select(.issue_severity == "HIGH") | .issue_severity' bandit-report.json | wc -l)
-                                if [ "\$HIGH_SEVERITY" -gt 0 ]; then
-                                    echo "❌ Security scan failed - high severity issues found"
-                                    exit 1
-                                else
-                                    echo "✅ Security scan passed - no high severity issues"
-                                fi
-                            fi
-                            
-                            # Check test results
-                            echo "Checking test results..."
-                            if [ -f test-results.xml ]; then
-                                FAILED_TESTS=\$(grep -c 'failure' test-results.xml || echo "0")
-                                if [ "\$FAILED_TESTS" -gt 0 ]; then
-                                    echo "❌ Tests failed - \$FAILED_TESTS test(s) failed"
-                                    exit 1
-                                else
-                                    echo "✅ Tests passed - all tests successful"
-                                fi
-                            fi
-                            
-                            echo "✅ Automatic code review passed - all quality gates met"
-                        """
-                    } else {
-                        // Manual code review for feature branches
-                        echo "Running manual code review for feature branch..."
-                        def reviewApproval = input(
-                            message: 'Code Review Required - Please review the changes',
-                            ok: 'Approve',
-                            parameters: [
-                                choice(
-                                    name: 'REVIEW_STATUS',
-                                    choices: ['Approved', 'Needs Changes', 'Request More Info'],
-                                    description: 'Code Review Status'
-                                )
-                            ]
-                        )
-                        
-                        if (reviewApproval != 'Approved') {
-                            error "Code review rejected - changes required"
-                        }
+
+                // normalize branch name
+                def currentBranch = (env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'unknown')
+                // strip common prefixes just in case
+                currentBranch = currentBranch.replaceFirst(/^refs\/heads\//, '')
+                                            .replaceFirst(/^origin\//, '')
+
+                if (currentBranch == 'main') {
+                    echo "Running automatic code review for main branch..."
+                    sh """
+                    . venv/bin/activate
+                    echo "Checking linting results..."
+                    if flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>/dev/null; then
+                        echo "Linting passed - no critical errors"
+                    else
+                        echo "Linting failed - critical errors found"
+                        exit 1
+                    fi
+
+                    echo "Checking security scan results..."
+                    if [ -f bandit-report.json ]; then
+                        if command -v jq >/dev/null 2>&1; then
+                        HIGH_SEVERITY=\$(jq -r '.results[] | select(.issue_severity == "HIGH") | .issue_severity' bandit-report.json | wc -l)
+                        if [ "\$HIGH_SEVERITY" -gt 0 ]; then
+                            echo "Security scan failed - high severity issues found"
+                            exit 1
+                        else
+                            echo "Security scan passed - no high severity issues"
+                        fi
+                        else
+                        echo "jq not found; skipping high-severity parse"
+                        fi
+                    fi
+
+                    echo "Checking test results..."
+                    if [ -f test-results.xml ]; then
+                        FAILED_TESTS=\$(grep -c 'failure' test-results.xml || echo "0")
+                        if [ "\$FAILED_TESTS" -gt 0 ]; then
+                        echo "Tests failed - \$FAILED_TESTS test(s) failed"
+                        exit 1
+                        else
+                        echo "Tests passed - all tests successful"
+                        fi
+                    fi
+
+                    echo "Automatic code review passed - all quality gates met"
+                    """
+                } else {
+                    echo "Running manual code review for feature branch..."
+                    def reviewApproval = input(
+                    message: 'Code Review Required - Please review the changes',
+                    ok: 'Approve',
+                    parameters: [
+                        choice(name: 'REVIEW_STATUS',
+                            choices: ['Approved', 'Needs Changes', 'Request More Info'],
+                            description: 'Code Review Status')
+                    ]
+                    )
+                    if (reviewApproval != 'Approved') {
+                    error "Code review rejected - changes required"
                     }
                 }
+                }
             }
-        }
+            }
+
         
         stage('Build') {
             steps {
@@ -193,11 +194,11 @@ pipeline {
                             echo "Render API credentials found - running full health check and rollback..."
                             sh """
                                 echo "Waiting for deployment to be ready..."
-                                sleep(30)
+                                sleep 30
                                 
                                 # Get service URL
-                                SERVICE_URL=\$(curl -s -H "Authorization: Bearer ${env.RENDER_API_KEY}" \\
-                                    "https://api.render.com/v1/services/${env.RENDER_SERVICE_ID}" | \\
+                                SERVICE_URL=\$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \\
+                                    "https://api.render.com/v1/services/${RENDER_SERVICE_ID}" | \\
                                     jq -r '.service.serviceDetails.url')
                                 
                                 echo "Service URL: \$SERVICE_URL"
@@ -219,8 +220,8 @@ pipeline {
                                     echo "Health check failed - initiating rollback..."
                                     
                                     # Get previous deployment
-                                    PREVIOUS_DEPLOY_ID=\$(curl -s -H "Authorization: Bearer ${env.RENDER_API_KEY}" \\
-                                        "https://api.render.com/v1/services/${env.RENDER_SERVICE_ID}/deploys" | \\
+                                    PREVIOUS_DEPLOY_ID=\$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \\
+                                        "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" | \\
                                         jq -r '.deploys[] | select(.status == "live") | .id' | head -2 | tail -1)
                                     
                                     if [ "\$PREVIOUS_DEPLOY_ID" != "null" ] && [ "\$PREVIOUS_DEPLOY_ID" != "" ]; then
@@ -228,9 +229,9 @@ pipeline {
                                         
                                         # Trigger rollback
                                         curl -s -X POST \\
-                                            -H "Authorization: Bearer ${env.RENDER_API_KEY}" \\
+                                            -H "Authorization: Bearer ${RENDER_API_KEY}" \\
                                             -H "Content-Type: application/json" \\
-                                            "https://api.render.com/v1/services/${env.RENDER_SERVICE_ID}/deploys/\$PREVIOUS_DEPLOY_ID/restore"
+                                            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/\$PREVIOUS_DEPLOY_ID/restore"
                                         
                                         echo "Rollback triggered successfully"
                                     else
