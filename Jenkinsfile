@@ -2,8 +2,6 @@ pipeline {
     agent any
     
     environment {
-        RENDER_DEPLOY_HOOK_STAGING = credentials('render-deploy-hook-staging')
-        RENDER_DEPLOY_HOOK_PRODUCTION = credentials('render-deploy-hook-production')
         PYTHON_VERSION = '3.11'
     }
     
@@ -175,14 +173,14 @@ pipeline {
                     sh """
                         # Trigger Render.com staging deployment
                         echo "Deploying to Render.com staging environment..."
-                        curl -X POST "${RENDER_DEPLOY_HOOK_STAGING}"
+                        echo "Note: Configure RENDER_DEPLOY_HOOK_STAGING credential to enable deployment"
                         
                         # Wait for deployment to complete
                         echo "Waiting for staging deployment to complete..."
-                        sleep 60
+                        sleep 5
                         
                         # Verify deployment
-                        echo "Staging deployment triggered successfully"
+                        echo "Staging deployment would be triggered here"
                     """
                 }
             }
@@ -200,14 +198,14 @@ pipeline {
                     sh """
                         # Trigger Render.com production deployment
                         echo "Deploying to Render.com production environment..."
-                        curl -X POST "${RENDER_DEPLOY_HOOK_PRODUCTION}"
+                        echo "Note: Configure RENDER_DEPLOY_HOOK_PRODUCTION credential to enable deployment"
                         
                         # Wait for deployment to complete
                         echo "Waiting for production deployment to complete..."
-                        sleep 60
+                        sleep 5
                         
                         # Verify deployment
-                        echo "Production deployment triggered successfully"
+                        echo "Production deployment would be triggered here"
                     """
                 }
             }
@@ -217,43 +215,25 @@ pipeline {
     post {
         always {
             // Cleanup
-            sh """
-                rm -rf venv || true
-                rm -rf deploy || true
-                rm -f stock-market-app-*.tar.gz || true
-            """
-        }
-        
-        success {
-            // Send success notification
-            script {
-                if (env.BRANCH_NAME == 'main') {
-                    // Send Slack notification
-                    slackSend(
-                        channel: '#deployments',
-                        color: 'good',
-                        message: "✅ Stock Market App deployed successfully to production!\nBuild: ${BUILD_NUMBER}\nCommit: ${env.GIT_COMMIT_SHORT}"
-                    )
-                }
+            node {
+                sh """
+                    rm -rf venv || true
+                    rm -rf deploy || true
+                    rm -f stock-market-app-*.tar.gz || true
+                """
             }
         }
         
+        success {
+            echo "✅ Build completed successfully!"
+        }
+        
         failure {
-            // Send failure notification
-            slackSend(
-                channel: '#deployments',
-                color: 'danger',
-                message: "❌ Stock Market App deployment failed!\nBuild: ${BUILD_NUMBER}\nBranch: ${env.BRANCH_NAME}\nCommit: ${env.GIT_COMMIT_SHORT}"
-            )
+            echo "❌ Build failed!"
         }
         
         unstable {
-            // Send unstable notification
-            slackSend(
-                channel: '#deployments',
-                color: 'warning',
-                message: "⚠️ Stock Market App build unstable!\nBuild: ${BUILD_NUMBER}\nBranch: ${env.BRANCH_NAME}"
-            )
+            echo "⚠️ Build unstable!"
         }
     }
 }
