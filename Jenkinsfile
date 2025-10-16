@@ -69,7 +69,7 @@ pipeline {
                                 source venv/bin/activate
                                 echo "Running security scans..."
                                 bandit -r . -f json -o bandit-report.json || true
-                                safety check --json --output safety-report.json || true
+                                safety check --json || true
                             """
                         }
                     }
@@ -89,15 +89,8 @@ pipeline {
             }
             post {
                 always {
-                    publishTestResults testResultsPattern: 'test-results.xml'
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report'
-                    ])
+                    echo "Test results available in test-results.xml"
+                    echo "Coverage report available in htmlcov/index.html"
                 }
             }
         }
