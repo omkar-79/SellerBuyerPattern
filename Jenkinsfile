@@ -3,6 +3,8 @@ pipeline {
     
     environment {
         RENDER_DEPLOY_HOOK_PRODUCTION = credentials('RENDER_DEPLOY_HOOK_PRODUCTION')
+        RENDER_API_KEY = credentials('RENDER_API_KEY')
+        RENDER_SERVICE_ID = credentials('RENDER_SERVICE_ID')
     }
     
     stages {
@@ -62,7 +64,7 @@ pipeline {
         stage('Code Review') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'main') {
+                    if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'origin/main') {
                         // Automatic code review for main branch
                         echo "Running automatic code review for main branch..."
                         
