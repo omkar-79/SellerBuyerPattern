@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        RENDER_DEPLOY_HOOK_PRODUCTION = 'https://api.render.com/deploy/srv-d3o53a9r0fns73bth1e0?key=jiSRgm6pIYw'
+        RENDER_DEPLOY_HOOK_PRODUCTION = credentials('RENDER_DEPLOY_HOOK_PRODUCTION')
     }
     
     stages {
@@ -100,9 +100,6 @@ pipeline {
         }
         
         stage('Build and Package') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     // Create deployment package
@@ -123,9 +120,6 @@ pipeline {
         }
         
         stage('Integration Tests') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     // Run local integration tests
