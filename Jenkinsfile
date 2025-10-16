@@ -105,8 +105,9 @@ pipeline {
                     // Create deployment package
                     sh """
                         echo "Creating deployment package..."
+                        rm -rf deploy
                         mkdir -p deploy
-                        cp -r . deploy/
+                        cp -r . deploy/ --exclude=deploy
                         cd deploy
                         rm -rf .git .venv venv __pycache__ .pytest_cache
                         rm -rf tests/ .flake8 pytest.ini Jenkinsfile
