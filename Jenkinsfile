@@ -44,7 +44,8 @@ pipeline {
                         sh """
                             source venv/bin/activate
                             echo "Running security scans..."
-                            bandit -r . -f json -o bandit-report.json || true
+                            # Exclude non-project dirs so results reflect our code only
+                            bandit -r . -x venv,.venv,deploy,tests,.pytest_cache,__pycache__ -f json -o bandit-report.json || true
                             safety check --json || true
                         """
                     }
