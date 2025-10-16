@@ -107,11 +107,11 @@ pipeline {
                         echo "Creating deployment package..."
                         rm -rf deploy
                         mkdir -p deploy
-                        cp -r . deploy/ --exclude=deploy
+                        
+                        # Copy files excluding unwanted directories and files
+                        rsync -av --exclude='deploy' --exclude='.git' --exclude='.venv' --exclude='venv' --exclude='__pycache__' --exclude='.pytest_cache' --exclude='tests' --exclude='.flake8' --exclude='pytest.ini' --exclude='Jenkinsfile' --exclude='bandit-report.json' --exclude='safety-report.json' --exclude='test-results.xml' --exclude='htmlcov' --exclude='*.tar.gz' . deploy/
+                        
                         cd deploy
-                        rm -rf .git .venv venv __pycache__ .pytest_cache
-                        rm -rf tests/ .flake8 pytest.ini Jenkinsfile
-                        rm -rf bandit-report.json safety-report.json test-results.xml htmlcov/
                         tar -czf ../stock-market-app-${BUILD_NUMBER}.tar.gz .
                         cd ..
                         echo "Deployment package created: stock-market-app-${BUILD_NUMBER}.tar.gz"
