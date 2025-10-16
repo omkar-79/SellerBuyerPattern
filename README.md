@@ -14,16 +14,16 @@ This project uses a production‑focused Jenkins CI/CD pipeline:
 
 ```mermaid
 flowchart TD
-    A[Commit (any branch)] --> B[Checkout]
-    B --> C[Env Setup]
-    C --> D[Code Quality]
-    D --> E[Unit Tests]
-    E --> F[Build & Package]
-    F --> G[Integration Checks]
-    G -->|main| H[Manual Deploy Approval]
-    H --> I[Deploy to Render (Production)]
-    I --> J[Health Check + Auto Rollback]
-    G -->|not main| K[Stop (no deploy)]
+    A["Commit (any branch)"] --> B["Checkout"]
+    B --> C["Env Setup"]
+    C --> D["Code Quality"]
+    D --> E["Unit Tests"]
+    E --> F["Build & Package"]
+    F --> G["Integration Checks"]
+    G -->|main| H["Manual Deploy Approval"]
+    H --> I["Deploy to Render (Production)"]
+    I --> J["Health Check + Auto Rollback"]
+    G -->|not main| K["Stop (no deploy)"]
 ```
 
 ## 📁 Project Structure
