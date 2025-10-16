@@ -35,7 +35,6 @@ SellerBuyerPattern/
 ├── main.py                 # Main Streamlit app
 ├── requirements.txt        # Python dependencies
 ├── Jenkinsfile            # CI/CD pipeline
-├── docker-compose.yml     # Local development
 ├── pytest.ini            # Test configuration
 ├── .flake8               # Linting configuration
 ├── render.yaml           # Render.com configuration
@@ -43,7 +42,8 @@ SellerBuyerPattern/
 ├── tests/                # Test suite
 │   ├── __init__.py
 │   └── test_main.py
-└── README-CICD.md        # This file
+├── README-CICD.md        # CI/CD documentation
+└── RENDER-SETUP.md       # Render.com setup guide
 ```
 
 ## 🔧 Jenkins Pipeline Stages
@@ -123,8 +123,8 @@ flake8 .
 # Test Render.com deployment locally
 streamlit run main.py --server.port=8501
 
-# Run with Docker Compose (for local development)
-docker-compose up -d
+# Run tests locally
+pytest tests/ -v --cov=.
 ```
 
 ## 🔒 Security Features
